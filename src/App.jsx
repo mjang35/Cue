@@ -130,6 +130,15 @@ export default function App({ user, onSignOut }) {
   // Load items from Supabase on mount
   useEffect(() => { fetchItems(); checkProStatus(); }, []);
 
+  async function checkProStatus() {
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_pro")
+      .eq("id", user.id)
+      .single();
+    if (data) setIsPro(data.is_pro || false);
+  }
+
   async function fetchItems() {
     setLoading(true);
     const { data, error } = await supabase
