@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import NotificationsPanel from "./NotificationsPanel";
+import PaywallScreen from "./PaywallScreen";
 
 // ── Brand ─────────────────────────────────────────────────────────────────────
 const BRAND = {
@@ -112,6 +113,9 @@ export default function App({ user, onSignOut }) {
   const [sortedItems, setSortedItems]   = useState([]);
   const [editMode, setEditMode]         = useState(false);
   const [showNotif, setShowNotif]       = useState(false);
+  const [showPaywall, setShowPaywall]   = useState(false);
+  const [isPro, setIsPro]               = useState(false);
+  const FREE_LIMIT = 5;
   const [saving, setSaving]             = useState(false);
   const [installPrompt, setInstallPrompt]         = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -124,7 +128,7 @@ export default function App({ user, onSignOut }) {
   }, []);
 
   // Load items from Supabase on mount
-  useEffect(() => { fetchItems(); }, []);
+  useEffect(() => { fetchItems(); checkProStatus(); }, []);
 
   async function fetchItems() {
     setLoading(true);
@@ -173,6 +177,7 @@ export default function App({ user, onSignOut }) {
 
   async function addItem() {
     if (!form.name.trim()) return;
+    if (!isPro && items.length >= FREE_LIMIT) { setView("home"); setShowPaywall(true); return; }
     setSaving(true);
     const { data, error } = await supabase
       .from("items")
@@ -427,6 +432,13 @@ export default function App({ user, onSignOut }) {
         </div>
       )}
 
+      {/* Paywall overlay */}
+      {showPaywall && (
+        <div style={{ position:"fixed", top:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:430, background:BRAND.bg, minHeight:"100vh", zIndex:200, overflowY:"auto" }}>
+          <PaywallScreen user={user} itemCount={items.length} isPro={isPro} onClose={() => setShowPaywall(false)} />
+        </div>
+      )}
+
       {/* ── Bottom bar ────────────────────────────────────────────────────── */}
       {view==="home" && (
         <div style={{
@@ -439,7 +451,12 @@ export default function App({ user, onSignOut }) {
         }}>
           <div>
             <div style={{ fontSize:11, color:BRAND.muted, fontWeight:500, textTransform:"uppercase", letterSpacing:1 }}>Tracking</div>
-            <div style={{ fontSize:20, fontWeight:700, color:BRAND.navy }}>{items.length} items</div>
+            <div style={{ fontSize:20, fontWeight:700, color:BRAND.navy }}>{items.length}{!isPro ? ` / ${FREE_LIMIT}` : ""} items</div>
+            {!isPro && (
+              <button onClick={() => setShowPaywall(true)} style={{ background:"none", border:"none", padding:0, fontSize:11, color:BRAND.green, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>
+                Upgrade to Pro ✨
+              </button>
+            )}
           </div>
           <button onClick={openAdd} style={{
             background:BRAND.green, color:BRAND.navy, border:"none",

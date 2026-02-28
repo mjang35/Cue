@@ -34,14 +34,13 @@ web-push generate-vapid-keys
 
 You'll see output like this:
 ```
+=======================================
 Public Key:
-BFClwU07HnzNwKhZA_wOF1B_w8WMbhMkOXU9jOo1SUbjl3dvg_0tWy8Ra3WXDK1cvQOJ3xPzXRdf1SjUXKNOSH4
+BHxyz123...(long string)
 
 Private Key:
-rr0mYGUebPrkLTPYDqthIV7gRP6Kkmi9RyijrsNCir0
-
+abc456....(long string)
 =======================================
-
 ```
 
 **5. Copy both keys and save them somewhere safe** — you'll need them in the next steps.
@@ -120,7 +119,7 @@ A browser window opens — click Allow.
 **3. Link your project** (get your project ID from Supabase → General settings):
 ```
 cd Desktop/cue
-supabase link --project-ref Yrzkaqgnymqrgvikewmpe
+supabase link --project-ref YOUR_PROJECT_ID
 ```
 
 **4. Deploy the function:**
