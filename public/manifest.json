@@ -4,8 +4,8 @@
   "description": "Timely reminders for your daily life. Track expiring food, recurring tasks, subscriptions, and more.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FAFAF8",
-  "theme_color": "#1A1A1A",
+  "background_color": "#F4FBF6",
+  "theme_color": "#4CC96A",
   "orientation": "portrait",
   "categories": ["productivity", "lifestyle", "utilities"],
   "icons": [
