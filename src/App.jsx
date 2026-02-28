@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
+import NotificationsPanel from "./NotificationsPanel";
 
 // ── Brand ─────────────────────────────────────────────────────────────────────
 const BRAND = {
@@ -110,6 +111,7 @@ export default function App({ user, onSignOut }) {
   const [form, setForm]                 = useState({ name:"", category:"home", expiryDate:addDays(todayStr(),7), recurrence:null, notes:"" });
   const [sortedItems, setSortedItems]   = useState([]);
   const [editMode, setEditMode]         = useState(false);
+  const [showNotif, setShowNotif]       = useState(false);
   const [saving, setSaving]             = useState(false);
   const [installPrompt, setInstallPrompt]         = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
@@ -281,7 +283,10 @@ export default function App({ user, onSignOut }) {
                 <div style={{ background:BRAND.green, color:BRAND.navy, fontWeight:700, fontSize:17, padding:"6px 16px", borderRadius:10 }}>Cue</div>
                 <span style={{ fontSize:13, color:BRAND.muted, fontWeight:500 }}>timely reminders</span>
               </div>
+              <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+              <button onClick={() => setShowNotif(true)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", padding:"4px" }}>🔔</button>
               <button onClick={onSignOut} style={{ background:"none", border:"none", fontSize:12, color:BRAND.muted, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", padding:"4px 8px" }}>Sign out</button>
+            </div>
             </div>
 
             <div style={{ fontSize:11, fontWeight:500, letterSpacing:2, color:BRAND.muted, textTransform:"uppercase", marginBottom:6 }}>
@@ -412,6 +417,13 @@ export default function App({ user, onSignOut }) {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* ── NOTIFICATIONS */}
+      {view==="home" && showNotif && (
+        <div style={{ position:"fixed", top:0, left:"50%", transform:"translateX(-50%)", width:"100%", maxWidth:430, background:BRAND.bg, minHeight:"100vh", zIndex:100, overflowY:"auto" }}>
+          <NotificationsPanel user={user} onClose={() => setShowNotif(false)} />
         </div>
       )}
 

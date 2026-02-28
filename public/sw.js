@@ -1,103 +1,77 @@
-// Cue — Service Worker
+// Cue — Service Worker v3
 // Handles caching, offline support, and push notifications
 
-const CACHE_NAME = 'cue-v1';
-const ASSETS_TO_CACHE = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-];
+const CACHE_NAME = 'cue-v3';
+const ASSETS_TO_CACHE = ['/', '/index.html', '/manifest.json'];
 
-// ─── Install: pre-cache core assets ───────────────────────────────────────────
+// ── Install ────────────────────────────────────────────────────────────────────
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
   );
   self.skipWaiting();
 });
 
-// ─── Activate: clean old caches ───────────────────────────────────────────────
+// ── Activate ───────────────────────────────────────────────────────────────────
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) =>
-      Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      )
+    caches.keys().then((names) =>
+      Promise.all(names.filter((n) => n !== CACHE_NAME).map((n) => caches.delete(n)))
     )
   );
   self.clients.claim();
 });
 
-// ─── Fetch: network-first for API, cache-first for assets ─────────────────────
+// ── Fetch (offline support) ────────────────────────────────────────────────────
 self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
   if (event.request.method !== 'GET') return;
-
-  // Skip cross-origin requests
   if (!event.request.url.startsWith(self.location.origin)) return;
 
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Cache successful responses
         if (response.ok) {
-          const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseClone);
-          });
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
         }
         return response;
       })
-      .catch(() => {
-        // Fallback to cache when offline
-        return caches.match(event.request).then((cached) => {
-          return cached || caches.match('/index.html');
-        });
-      })
+      .catch(() =>
+        caches.match(event.request).then((cached) => cached || caches.match('/index.html'))
+      )
   );
 });
 
-// ─── Push Notifications ───────────────────────────────────────────────────────
+// ── Push Notifications ─────────────────────────────────────────────────────────
 self.addEventListener('push', (event) => {
-  let data = { title: 'Cue', body: 'You have a reminder due soon.' };
-
-  try {
-    data = event.data.json();
-  } catch {}
+  let data = { title: 'Cue', body: 'You have a reminder due soon.', tag: 'cue', url: '/' };
+  try { data = { ...data, ...event.data.json() }; } catch {}
 
   event.waitUntil(
     self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      tag: data.tag || 'cue-reminder',
-      data: { url: data.url || '/' },
+      body:    data.body,
+      icon:    '/icons/icon-192.png',
+      badge:   '/icons/icon-192.png',
+      tag:     data.tag,
+      data:    { url: data.url },
+      vibrate: [200, 100, 200],
       actions: [
-        { action: 'view', title: 'View' },
+        { action: 'view',    title: 'View' },
         { action: 'dismiss', title: 'Dismiss' },
       ],
-      vibrate: [200, 100, 200],
     })
   );
 });
 
-// ─── Notification click ───────────────────────────────────────────────────────
+// ── Notification click ─────────────────────────────────────────────────────────
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-
   if (event.action === 'dismiss') return;
 
   const url = event.notification.data?.url || '/';
-
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const client of list) {
         if (client.url === url && 'focus' in client) return client.focus();
       }
       return clients.openWindow(url);
