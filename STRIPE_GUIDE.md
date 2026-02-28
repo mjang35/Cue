@@ -56,11 +56,11 @@ price_1T5uNKAWaFp2eXuPEAgwDOZO
 1. In Stripe Dashboard, click **"Developers"** → **"API keys"**
 2. Copy these two keys:
    - **Publishable key** — starts with `pk_test_...`
-   - **Secret key** — starts with `sk_test_...` (click Reveal)
+   - **Secret key** — starts with `sk_test_YOUR_SECRET_KEY_HERE...` (click Reveal)
 
 pk_test_51T5uA2AWaFp2eXuPcPLp3ITLeewTIZBiZZYlu57y2PiRDvvKoXlPUHNbRyfAkwrdhSPyHINarM5UrWKOgYE6Iaol00mOM2VSJT
 
-sk_test_51T5uA2AWaFp2eXuPF2MKRjg5dVKWjXIuvKhTGqZ1QHeZrjSqBxG4nlGjaHpsI0Y6I8CjTVtz3MXaJPHsHBrXYoX600pOi5qi21
+sk_test_YOUR_SECRET_KEY_HERE
 
 ---
 
@@ -86,7 +86,7 @@ Add these:
 
 | Name | Value |
 |---|---|
-| `STRIPE_SECRET_KEY` | your `sk_test_...` key |
+| `STRIPE_SECRET_KEY` | your `sk_test_YOUR_SECRET_KEY_HERE...` key |
 | `STRIPE_WEBHOOK_SECRET` | (you'll get this in Part G) |
 
 ---
