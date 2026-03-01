@@ -86,7 +86,7 @@ export default function NotificationsPanel({ user, onClose }) {
                 {subscribed ? "Notifications are on" : "Notifications are off"}
               </div>
               <div style={{ fontSize: 13, color: BRAND.muted, marginTop: 2 }}>
-                {subscribed ? "You'll be notified based on your schedule below" : "Turn on to get timely reminders"}
+                {subscribed ? "Sent daily at 9:00 AM based on your schedule" : "Turn on to get timely reminders"}
               </div>
             </div>
           </div>
@@ -124,6 +124,11 @@ export default function NotificationsPanel({ user, onClose }) {
             ))}
           </div>
 
+          <div style={{ background:"#F4FBF6", border:`1px solid ${BRAND.border}`, borderRadius:12, padding:"14px 16px", fontSize:13, color:BRAND.muted, lineHeight:1.7, marginBottom:12 }}>
+            <div style={{ fontWeight:600, color:BRAND.navy, marginBottom:8 }}>📬 How notifications work</div>
+            <div style={{ marginBottom:6 }}>🕘 <strong style={{color:BRAND.navy}}>Daily digest</strong> — sent every day at <strong style={{color:BRAND.navy}}>9:00 AM</strong> for items matching your schedule above</div>
+            <div>⏰ <strong style={{color:BRAND.navy}}>Exact time</strong> — if you add a time to a reminder (e.g. 3:30 PM), you'll get a separate notification at that exact moment on the due date</div>
+          </div>
           <button
             onClick={savePrefs}
             disabled={savingPrefs}
