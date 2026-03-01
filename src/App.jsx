@@ -96,7 +96,14 @@ function FormFields({ form, setForm }) {
       </div>
       <div>
         <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:8 }}>Expires / Due date</label>
-        <input type="date" className="input-field" value={form.expiryDate} onChange={e => setForm(f=>({...f,expiryDate:e.target.value}))} />
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          <input type="date" className="input-field" value={form.expiryDate} onChange={e => setForm(f=>({...f,expiryDate:e.target.value}))} style={{ flex:1 }} />
+          <button type="button"
+            onClick={() => setForm(f=>({...f,expiryDate:todayStr()}))}
+            style={{ background:BRAND.greenLight, border:`1px solid ${BRAND.border}`, borderRadius:8, padding:"8px 12px", fontSize:12, fontWeight:600, color:BRAND.navy, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"'DM Sans',sans-serif" }}>
+            Today
+          </button>
+        </div>
       </div>
       <div>
         <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Time <span style={{ fontWeight:400, textTransform:"none", letterSpacing:0, fontSize:11 }}>(optional)</span></label>

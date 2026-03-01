@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { useNotifications } from './hooks/useNotifications'
+import { supabase } from './lib/supabase'
 
 const BRAND = {
   green:      "#4CC96A",
@@ -9,11 +11,53 @@ const BRAND = {
   muted:      "#7A9A85",
 }
 
+const DAY_OPTIONS = [
+  { value: 0,  label: "Day of" },
+  { value: 1,  label: "1 day before" },
+  { value: 2,  label: "2 days before" },
+  { value: 3,  label: "3 days before" },
+  { value: 5,  label: "5 days before" },
+  { value: 7,  label: "1 week before" },
+  { value: 14, label: "2 weeks before" },
+]
+
 export default function NotificationsPanel({ user, onClose }) {
   const { permission, subscribed, loading, supported, requestPermissionAndSubscribe, unsubscribe } = useNotifications(user)
+  const [selectedDays, setSelectedDays] = useState([0, 1, 3])
+  const [savingPrefs, setSavingPrefs] = useState(false)
+  const [savedMsg, setSavedMsg] = useState(false)
+
+  useEffect(() => {
+    if (user) loadPrefs()
+  }, [user])
+
+  async function loadPrefs() {
+    const { data } = await supabase
+      .from('profiles')
+      .select('notification_days')
+      .eq('id', user.id)
+      .single()
+    if (data?.notification_days) setSelectedDays(data.notification_days)
+  }
+
+  async function savePrefs() {
+    setSavingPrefs(true)
+    await supabase
+      .from('profiles')
+      .upsert({ id: user.id, notification_days: selectedDays })
+    setSavingPrefs(false)
+    setSavedMsg(true)
+    setTimeout(() => setSavedMsg(false), 2000)
+  }
+
+  function toggleDay(val) {
+    setSelectedDays(prev =>
+      prev.includes(val) ? prev.filter(d => d !== val) : [...prev, val].sort((a,b) => a-b)
+    )
+  }
 
   return (
-    <div style={{ padding: "52px 24px 24px" }}>
+    <div style={{ padding: "52px 24px 40px", fontFamily: "'DM Sans', sans-serif" }}>
       <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: BRAND.muted, fontFamily: "'DM Sans',sans-serif", padding: 0, marginBottom: 20 }}>← Back</button>
 
       <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 28, fontWeight: 400, color: BRAND.navy, marginBottom: 8 }}>Notifications</h2>
@@ -21,19 +65,18 @@ export default function NotificationsPanel({ user, onClose }) {
         Get reminded on your phone when items are due — even when the app is closed.
       </p>
 
-      {/* Not supported message */}
+      {/* Not supported */}
       {!supported && (
         <div style={{ background: "#FDF7EF", border: "1px solid #F0E0BE", borderRadius: 12, padding: 16, fontSize: 14, color: "#C47A2A", lineHeight: 1.7, marginBottom: 20 }}>
           <div style={{ fontWeight: 600, marginBottom: 6 }}>📲 Install the app first</div>
-          Push notifications require the app to be installed on your home screen.
-          <br /><br />
-          <strong>On iPhone:</strong> Tap the Share button in Safari → "Add to Home Screen"<br />
-          <strong>On Android:</strong> Tap the menu in Chrome → "Add to Home Screen"<br /><br />
-          Then open Cue from your home screen and come back here to enable notifications.
+          Push notifications require the app to be installed on your home screen.<br /><br />
+          <strong>On iPhone:</strong> Tap Share in Safari → "Add to Home Screen"<br />
+          <strong>On Android:</strong> Tap menu in Chrome → "Add to Home Screen"<br /><br />
+          Then open Cue from your home screen and come back here.
         </div>
       )}
 
-      {/* Status card — only show if supported */}
+      {/* Status card */}
       {supported && (
         <div style={{ background: subscribed ? BRAND.greenLight : "#F5F4F0", borderRadius: 16, padding: 20, marginBottom: 24, border: `1.5px solid ${subscribed ? BRAND.border : "#E8E7E1"}` }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -43,38 +86,64 @@ export default function NotificationsPanel({ user, onClose }) {
                 {subscribed ? "Notifications are on" : "Notifications are off"}
               </div>
               <div style={{ fontSize: 13, color: BRAND.muted, marginTop: 2 }}>
-                {subscribed ? "You'll be reminded 3 days, 1 day, and day-of" : "Turn on to get timely reminders"}
+                {subscribed ? "You'll be notified based on your schedule below" : "Turn on to get timely reminders"}
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* When notified */}
-      {supported && subscribed && (
+      {/* Notification schedule picker */}
+      {supported && (
         <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: BRAND.muted, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 12 }}>When you'll be notified</div>
-          {[
-            { icon: "⚠️", label: "3 days before", desc: "Early heads up" },
-            { icon: "⏰", label: "1 day before",  desc: "Time to act" },
-            { icon: "🔴", label: "Day of",        desc: "Last reminder" },
-          ].map(({ icon, label, desc }) => (
-            <div key={label} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: `1px solid ${BRAND.border}` }}>
-              <span style={{ fontSize: 20 }}>{icon}</span>
-              <div>
-                <div style={{ fontSize: 14, fontWeight: 500, color: BRAND.navy }}>{label}</div>
-                <div style={{ fontSize: 12, color: BRAND.muted }}>{desc}</div>
+          <div style={{ fontSize: 12, fontWeight: 600, color: BRAND.muted, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 12 }}>
+            Notify me
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {DAY_OPTIONS.map(({ value, label }) => (
+              <div key={value}
+                onClick={() => toggleDay(value)}
+                style={{
+                  display: "flex", alignItems: "center", gap: 12,
+                  padding: "12px 16px", borderRadius: 12, cursor: "pointer",
+                  background: selectedDays.includes(value) ? BRAND.greenLight : "#fff",
+                  border: `1.5px solid ${selectedDays.includes(value) ? BRAND.green : BRAND.border}`,
+                  transition: "all 0.15s",
+                }}>
+                <div style={{
+                  width: 20, height: 20, borderRadius: 4,
+                  background: selectedDays.includes(value) ? BRAND.green : "transparent",
+                  border: `2px solid ${selectedDays.includes(value) ? BRAND.green : BRAND.border}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  flexShrink: 0,
+                }}>
+                  {selectedDays.includes(value) && <span style={{ color: BRAND.navy, fontSize: 13, fontWeight: 700 }}>✓</span>}
+                </div>
+                <span style={{ fontSize: 14, fontWeight: 500, color: BRAND.navy }}>{label}</span>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <button
+            onClick={savePrefs}
+            disabled={savingPrefs}
+            style={{
+              marginTop: 16, background: savedMsg ? BRAND.green : BRAND.navy,
+              color: "#fff", border: "none", borderRadius: 12,
+              padding: "12px 24px", fontSize: 14, fontFamily: "'DM Sans',sans-serif",
+              fontWeight: 600, cursor: "pointer", width: "100%",
+              opacity: savingPrefs ? 0.5 : 1, transition: "background 0.3s",
+            }}>
+            {savedMsg ? "✓ Saved!" : savingPrefs ? "Saving…" : "Save schedule"}
+          </button>
         </div>
       )}
 
-      {/* Action button */}
+      {/* Toggle notifications */}
       {supported && (
         permission === "denied" ? (
           <div style={{ background: "#FDF0EF", border: "1px solid #F0CECE", borderRadius: 12, padding: 16, fontSize: 14, color: "#C45B5B", lineHeight: 1.6 }}>
-            You've blocked notifications for this site. Go to your browser settings, find this site, and allow notifications. Then come back here.
+            You've blocked notifications. Go to your browser settings, find this site, and allow notifications.
           </div>
         ) : subscribed ? (
           <button onClick={unsubscribe} disabled={loading}
