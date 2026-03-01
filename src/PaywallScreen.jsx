@@ -49,17 +49,27 @@ export default function PaywallScreen({ user, itemCount, onClose, isPro }) {
     try {
       const plan = PLANS.find(p => p.id === selectedPlan);
 
-      // Call our Supabase edge function to create a Stripe checkout session
-      const { data, error: fnError } = await supabase.functions.invoke("create-checkout", {
-        body: {
-          priceId:   plan.priceId,
-          userId:    user.id,
-          userEmail: user.email,
-          returnUrl: window.location.origin,
-        },
-      });
+      // Get auth token and call edge function directly
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch(
+        "https://rzkaqgnymqrgvikewmpe.supabase.co/functions/v1/create-checkout",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${session?.access_token}`,
+          },
+          body: JSON.stringify({
+            priceId:   plan.priceId,
+            userId:    user.id,
+            userEmail: user.email,
+            returnUrl: window.location.origin,
+          }),
+        }
+      );
+      const data = await res.json();
 
-      if (fnError || !data?.url) {
+      if (!res.ok || !data?.url) {
         setError("Something went wrong. Please try again.");
         setLoading(false);
         return;
