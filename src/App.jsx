@@ -46,7 +46,8 @@ const urgencyColor = {
 
 function getDaysUntil(dateStr) {
   const today = new Date(); today.setHours(0,0,0,0);
-  const target = new Date(dateStr); target.setHours(0,0,0,0);
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const target = new Date(year, month - 1, day);
   return Math.round((target - today) / (1000*60*60*24));
 }
 function getUrgencyLevel(days) {
@@ -57,7 +58,10 @@ function getUrgencyLevel(days) {
   return "ok";
 }
 function formatDate(dateStr, timeStr) {
-  const date = new Date(dateStr).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+  // Parse date parts directly to avoid timezone shifting
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  const date = d.toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
   if (!timeStr) return date;
   const [h, m] = timeStr.split(":");
   const hour = parseInt(h);
@@ -96,8 +100,13 @@ function FormFields({ form, setForm }) {
       </div>
       <div>
         <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Time <span style={{ fontWeight:400, textTransform:"none", letterSpacing:0, fontSize:11 }}>(optional)</span></label>
-        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
           <input type="time" className="input-field" value={form.dueTime||""} onChange={e => setForm(f=>({...f,dueTime:e.target.value}))} style={{ flex:1 }} />
+          <button type="button"
+            onClick={() => { const now = new Date(); const h = String(now.getHours()).padStart(2,"0"); const m = String(now.getMinutes()).padStart(2,"0"); setForm(f=>({...f,dueTime:`${h}:${m}`})); }}
+            style={{ background:BRAND.greenLight, border:`1px solid ${BRAND.border}`, borderRadius:8, padding:"8px 12px", fontSize:12, fontWeight:600, color:BRAND.navy, cursor:"pointer", whiteSpace:"nowrap", fontFamily:"'DM Sans',sans-serif" }}>
+            Now
+          </button>
           {form.dueTime && (
             <button type="button" onClick={() => setForm(f=>({...f,dueTime:""}))}
               style={{ background:"none", border:"none", color:BRAND.muted, fontSize:20, cursor:"pointer", padding:"0 4px", lineHeight:1 }}>×</button>

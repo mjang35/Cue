@@ -1,8 +1,5 @@
-// Supabase Edge Function — send-notifications
-// This runs automatically every day and sends push notifications
-// to users whose items are expiring soon
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import webpush from 'npm:web-push@3.6.7'
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -11,84 +8,58 @@ const supabase = createClient(
 
 Deno.serve(async () => {
   try {
+    const vapidPublicKey  = Deno.env.get('VAPID_PUBLIC_KEY')!
+    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')!
+
+    webpush.setVapidDetails(
+      'mailto:cue.helpcontact@gmail.com',
+      vapidPublicKey,
+      vapidPrivateKey
+    )
+
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-
-    // Find items expiring in 0, 1, or 3 days
-    const checkDays = [0, 1, 3]
     const results = []
 
-    for (const daysAhead of checkDays) {
-      const targetDate = new Date(today)
-      targetDate.setDate(targetDate.getDate() + daysAhead)
-      const dateStr = targetDate.toISOString().split('T')[0]
+    for (const daysAhead of [0, 1, 3]) {
+      const target = new Date(today)
+      target.setDate(target.getDate() + daysAhead)
+      const dateStr = target.toISOString().split('T')[0]
 
-      // Get all items expiring on this date, with their push subscriptions
-      const { data: items, error } = await supabase
-        .from('items')
-        .select(`
-          id,
-          name,
-          category,
-          expiry_date,
-          user_id,
-          push_subscriptions!inner(subscription)
-        `)
-        .eq('expiry_date', dateStr)
+      const { data: items } = await supabase
+        .from('items').select('id, name, user_id').eq('expiry_date', dateStr)
+      if (!items?.length) continue
 
-      if (error) continue
+      const userIds = [...new Set(items.map(i => i.user_id))]
+      const { data: subs } = await supabase
+        .from('push_subscriptions').select('user_id, subscription').in('user_id', userIds)
+      if (!subs?.length) continue
 
-      for (const item of items || []) {
-        const subscription = item.push_subscriptions?.subscription
-        if (!subscription) continue
+      const subMap = Object.fromEntries(subs.map(s => [s.user_id, s.subscription]))
 
-        let message = ''
-        if (daysAhead === 0) message = `"${item.name}" is due today!`
-        if (daysAhead === 1) message = `"${item.name}" is due tomorrow`
-        if (daysAhead === 3) message = `"${item.name}" is due in 3 days`
+      for (const item of items) {
+        const sub = subMap[item.user_id]
+        if (!sub) continue
 
-        // Send the push notification
-        const pushed = await sendPushNotification(subscription, {
-          title: 'Cue Reminder',
-          body: message,
-          tag: `cue-${item.id}`,
-          url: '/',
-        })
+        const body =
+          daysAhead === 0 ? `"${item.name}" is due today!` :
+          daysAhead === 1 ? `"${item.name}" is due tomorrow` :
+                            `"${item.name}" is due in 3 days`
 
-        results.push({ item: item.name, daysAhead, success: pushed })
+        try {
+          await webpush.sendNotification(sub, JSON.stringify({ title: 'Cue Reminder', body }))
+          results.push({ item: item.name, daysAhead, ok: true })
+        } catch (e) {
+          results.push({ item: item.name, daysAhead, ok: false, error: e.message, statusCode: e.statusCode })
+        }
       }
     }
 
     return new Response(
-      JSON.stringify({ sent: results.length, results }),
+      JSON.stringify({ sent: results.filter(r => r.ok).length, results }),
       { headers: { 'Content-Type': 'application/json' } }
     )
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
-    )
+    return new Response(JSON.stringify({ error: err.message }), { status: 500 })
   }
 })
-
-async function sendPushNotification(subscription: any, payload: any) {
-  try {
-    const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')!
-    const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')!
-
-    const body = JSON.stringify(payload)
-
-    const response = await fetch(subscription.endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'TTL': '86400',
-      },
-      body,
-    })
-
-    return response.ok
-  } catch {
-    return false
-  }
-}
