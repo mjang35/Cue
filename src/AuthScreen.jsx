@@ -16,6 +16,7 @@ export default function AuthScreen() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState(null); // { type: "error"|"success", text }
+  const [agreedToTerms, setAgreedToTerms] = useState(false);
 
   async function handleLogin(e) {
     e.preventDefault();
@@ -28,6 +29,10 @@ export default function AuthScreen() {
 
   async function handleSignup(e) {
     e.preventDefault();
+    if (!agreedToTerms) {
+      setMessage({ type: "error", text: "Please agree to the Terms of Service and Privacy Policy to continue." });
+      return;
+    }
     setLoading(true);
     setMessage(null);
     const { error } = await supabase.auth.signUp({ email, password });
@@ -127,7 +132,24 @@ export default function AuthScreen() {
             </div>
           )}
 
-          <button className="btn-green" type="submit" disabled={loading} style={{ marginTop: 8 }}>
+          {mode === "signup" && (
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 10, marginTop: 4 }}>
+              <input
+                type="checkbox"
+                id="terms"
+                checked={agreedToTerms}
+                onChange={e => setAgreedToTerms(e.target.checked)}
+                style={{ marginTop: 3, accentColor: BRAND.green, width: 16, height: 16, flexShrink: 0, cursor: "pointer" }}
+              />
+              <label htmlFor="terms" style={{ fontSize: 13, color: BRAND.muted, lineHeight: 1.5, cursor: "pointer" }}>
+                I agree to the{" "}
+                <a href="/legal.html" target="_blank" style={{ color: BRAND.green, fontWeight: 600 }}>Terms of Service</a>
+                {" "}and{" "}
+                <a href="/legal.html" target="_blank" style={{ color: BRAND.green, fontWeight: 600 }}>Privacy Policy</a>
+              </label>
+            </div>
+          )}
+          <button className="btn-green" type="submit" disabled={loading || (mode === "signup" && !agreedToTerms)} style={{ marginTop: 8, opacity: (mode === "signup" && !agreedToTerms) ? 0.5 : 1 }}>
             {loading ? "Please wait…" :
              mode === "login"  ? "Sign in" :
              mode === "signup" ? "Create account" :

@@ -474,6 +474,9 @@ export default function App({ user, onSignOut }) {
             boxShadow:`0 4px 20px ${BRAND.green}66`, fontWeight:700,
           }}>+</button>
         </div>
+        <div style={{ textAlign:"center", padding:"4px 0 0", fontSize:11, color:BRAND.muted }}>
+          <a href="/legal.html" target="_blank" style={{ color:BRAND.muted, textDecoration:"none" }}>Privacy & Terms</a>
+        </div>
       )}
     </div>
   );
