@@ -56,8 +56,14 @@ function getUrgencyLevel(days) {
   if (days <= 7)  return "upcoming";
   return "ok";
 }
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+function formatDate(dateStr, timeStr) {
+  const date = new Date(dateStr).toLocaleDateString("en-US", { month:"short", day:"numeric", year:"numeric" });
+  if (!timeStr) return date;
+  const [h, m] = timeStr.split(":");
+  const hour = parseInt(h);
+  const ampm = hour >= 12 ? "PM" : "AM";
+  const hour12 = hour % 12 || 12;
+  return `${date} at ${hour12}:${m} ${ampm}`;
 }
 function todayStr() { return new Date().toISOString().split("T")[0]; }
 function addDays(dateStr, days) {
@@ -87,6 +93,17 @@ function FormFields({ form, setForm }) {
       <div>
         <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:8 }}>Expires / Due date</label>
         <input type="date" className="input-field" value={form.expiryDate} onChange={e => setForm(f=>({...f,expiryDate:e.target.value}))} />
+      </div>
+      <div>
+        <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:6 }}>Time <span style={{ fontWeight:400, textTransform:"none", letterSpacing:0, fontSize:11 }}>(optional)</span></label>
+        <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+          <input type="time" className="input-field" value={form.dueTime||""} onChange={e => setForm(f=>({...f,dueTime:e.target.value}))} style={{ flex:1 }} />
+          {form.dueTime && (
+            <button type="button" onClick={() => setForm(f=>({...f,dueTime:""}))}
+              style={{ background:"none", border:"none", color:BRAND.muted, fontSize:20, cursor:"pointer", padding:"0 4px", lineHeight:1 }}>×</button>
+          )}
+        </div>
+        <div style={{ fontSize:11, color:BRAND.muted, marginTop:5 }}>Add a time to get notified at a specific hour</div>
       </div>
       <div>
         <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:8 }}>Recurrence</label>
@@ -161,6 +178,7 @@ export default function App({ user, onSignOut }) {
       expiryDate:  row.expiry_date,
       recurrence:  row.recurrence_days,
       notes:       row.notes || "",
+      dueTime:     row.due_time || "",
     };
   }
 
@@ -173,6 +191,7 @@ export default function App({ user, onSignOut }) {
       expiry_date:     item.expiryDate,
       recurrence_days: item.recurrence,
       notes:           item.notes || "",
+      due_time:        item.dueTime || null,
     };
   }
 
@@ -240,11 +259,11 @@ export default function App({ user, onSignOut }) {
 
   function openDetail(item) {
     setSelectedItem(item);
-    setForm({ name:item.name, category:item.category, expiryDate:item.expiryDate, recurrence:item.recurrence, notes:item.notes });
+    setForm({ name:item.name, category:item.category, expiryDate:item.expiryDate, recurrence:item.recurrence, notes:item.notes, dueTime:item.dueTime||"" });
     setEditMode(false); setView("detail");
   }
   function openAdd() {
-    setForm({ name:"", category:"home", expiryDate:addDays(todayStr(),7), recurrence:null, notes:"" });
+    setForm({ name:"", category:"home", expiryDate:addDays(todayStr(),7), recurrence:null, notes:"", dueTime:"" });
     setView("add");
   }
   async function handleInstall() {
@@ -351,7 +370,7 @@ export default function App({ user, onSignOut }) {
                   <div style={{ width:40, height:40, borderRadius:12, background:cat.color+"18", display:"flex", alignItems:"center", justifyContent:"center", fontSize:18, flexShrink:0 }}>{cat.icon}</div>
                   <div style={{ flex:1, minWidth:0 }}>
                     <div style={{ fontSize:15, fontWeight:500, color:BRAND.navy, marginBottom:2, whiteSpace:"nowrap", overflow:"hidden", textOverflow:"ellipsis" }}>{item.name}</div>
-                    <div style={{ fontSize:12, color:BRAND.muted }}>{formatDate(item.expiryDate)}{item.recurrence&&<span style={{ marginLeft:6, color:BRAND.border }}>· repeats</span>}</div>
+                    <div style={{ fontSize:12, color:BRAND.muted }}>{formatDate(item.expiryDate, item.dueTime)}{item.recurrence&&<span style={{ marginLeft:6, color:BRAND.border }}>· repeats</span>}</div>
                   </div>
                   <div style={{ fontSize:12, fontWeight:600, flexShrink:0, color:urgencyColor[urgency], background:urgencyColor[urgency]+"18", padding:"4px 10px", borderRadius:20 }}>
                     {urgency==="overdue"?`${Math.abs(days)}d ago`:urgency==="today"?"Today":`${days}d`}
@@ -400,7 +419,7 @@ export default function App({ user, onSignOut }) {
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:18 }}>
                     <div>
                       <div style={{ fontSize:11, color:BRAND.muted, fontWeight:500, textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 }}>Due date</div>
-                      <div style={{ fontSize:15, fontWeight:600, color:BRAND.navy }}>{formatDate(selectedItem.expiryDate)}</div>
+                      <div style={{ fontSize:15, fontWeight:600, color:BRAND.navy }}>{formatDate(selectedItem.expiryDate, selectedItem.dueTime)}</div>
                     </div>
                     <div>
                       <div style={{ fontSize:11, color:BRAND.muted, fontWeight:500, textTransform:"uppercase", letterSpacing:0.5, marginBottom:4 }}>Recurrence</div>
