@@ -455,27 +455,28 @@ export default function App({ user, onSignOut }) {
           width:"100%", maxWidth:430,
           background:"rgba(244,251,246,0.94)", backdropFilter:"blur(12px)",
           borderTop:`1px solid ${BRAND.border}`,
-          padding:"12px 24px 28px",
-          display:"flex", justifyContent:"space-between", alignItems:"center",
+          padding:"12px 24px 20px",
         }}>
-          <div>
-            <div style={{ fontSize:11, color:BRAND.muted, fontWeight:500, textTransform:"uppercase", letterSpacing:1 }}>Tracking</div>
-            <div style={{ fontSize:20, fontWeight:700, color:BRAND.navy }}>{items.length}{!isPro ? ` / ${FREE_LIMIT}` : ""} items</div>
-            {!isPro && (
-              <button onClick={() => setShowPaywall(true)} style={{ background:"none", border:"none", padding:0, fontSize:11, color:BRAND.green, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>
-                Upgrade to Pro ✨
-              </button>
-            )}
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+            <div>
+              <div style={{ fontSize:11, color:BRAND.muted, fontWeight:500, textTransform:"uppercase", letterSpacing:1 }}>Tracking</div>
+              <div style={{ fontSize:20, fontWeight:700, color:BRAND.navy }}>{items.length}{!isPro ? ` / ${FREE_LIMIT}` : ""} items</div>
+              {!isPro && (
+                <button onClick={() => setShowPaywall(true)} style={{ background:"none", border:"none", padding:0, fontSize:11, color:BRAND.green, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", marginTop:2 }}>
+                  Upgrade to Pro ✨
+                </button>
+              )}
+            </div>
+            <button onClick={openAdd} style={{
+              background:BRAND.green, color:BRAND.navy, border:"none",
+              width:52, height:52, borderRadius:"50%", fontSize:26,
+              cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
+              boxShadow:`0 4px 20px ${BRAND.green}66`, fontWeight:700,
+            }}>+</button>
           </div>
-          <button onClick={openAdd} style={{
-            background:BRAND.green, color:BRAND.navy, border:"none",
-            width:52, height:52, borderRadius:"50%", fontSize:26,
-            cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"center",
-            boxShadow:`0 4px 20px ${BRAND.green}66`, fontWeight:700,
-          }}>+</button>
-        </div>
-        <div style={{ textAlign:"center", padding:"4px 0 0", fontSize:11, color:BRAND.muted }}>
-          <a href="/legal.html" target="_blank" style={{ color:BRAND.muted, textDecoration:"none" }}>Privacy &amp; Terms</a>
+          <div style={{ textAlign:"center", fontSize:11, color:BRAND.muted }}>
+            <a href="/legal.html" target="_blank" style={{ color:BRAND.muted, textDecoration:"none" }}>Privacy &amp; Terms</a>
+          </div>
         </div>
       )}
     </div>
