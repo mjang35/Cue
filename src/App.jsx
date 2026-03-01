@@ -152,11 +152,20 @@ export default function App({ user, onSignOut }) {
   const [saving, setSaving]             = useState(false);
   const [installPrompt, setInstallPrompt]         = useState(null);
   const [showInstallBanner, setShowInstallBanner] = useState(false);
+  const [showInstallModal, setShowInstallModal]   = useState(false);
 
-  // PWA install prompt
+  // Detect if already installed as standalone
+  const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isAndroid = /Android/.test(navigator.userAgent);
+
+  // PWA install prompt (Android/Chrome)
   useEffect(() => {
+    if (isStandalone) return; // already installed, don't show banner
     const handler = (e) => { e.preventDefault(); setInstallPrompt(e); setShowInstallBanner(true); };
     window.addEventListener("beforeinstallprompt", handler);
+    // Show iOS banner manually since iOS doesn't fire beforeinstallprompt
+    if (isIOS) setShowInstallBanner(true);
     return () => window.removeEventListener("beforeinstallprompt", handler);
   }, []);
 
@@ -283,6 +292,7 @@ export default function App({ user, onSignOut }) {
     setView("add");
   }
   async function handleInstall() {
+    if (isIOS) { setShowInstallModal(true); return; }
     if (!installPrompt) return;
     installPrompt.prompt();
     const { outcome } = await installPrompt.userChoice;
@@ -312,12 +322,45 @@ export default function App({ user, onSignOut }) {
       `}</style>
 
       {/* Install banner */}
-      {showInstallBanner && (
+      {showInstallBanner && !isStandalone && (
         <div style={{ background:BRAND.navy, color:"#fff", padding:"12px 20px", display:"flex", alignItems:"center", justifyContent:"space-between", gap:12 }}>
-          <div style={{ fontSize:13 }}>📲 Install <strong>Cue</strong> on your phone</div>
+          <div style={{ fontSize:13 }}>📲 Add <strong>Cue</strong> to your home screen</div>
           <div style={{ display:"flex", gap:8 }}>
-            <button onClick={handleInstall} style={{ background:BRAND.green, color:BRAND.navy, border:"none", borderRadius:6, padding:"6px 12px", fontSize:12, fontWeight:700, cursor:"pointer" }}>Install</button>
+            <button onClick={handleInstall} style={{ background:BRAND.green, color:BRAND.navy, border:"none", borderRadius:6, padding:"6px 12px", fontSize:12, fontWeight:700, cursor:"pointer" }}>
+              {isIOS ? "How?" : "Install"}
+            </button>
             <button onClick={()=>setShowInstallBanner(false)} style={{ background:"transparent", color:"#aaa", border:"none", fontSize:20, cursor:"pointer", lineHeight:1 }}>×</button>
+          </div>
+        </div>
+      )}
+
+      {/* iOS install instructions modal */}
+      {showInstallModal && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,0.5)", zIndex:300, display:"flex", alignItems:"flex-end", justifyContent:"center" }}
+          onClick={() => setShowInstallModal(false)}>
+          <div style={{ background:"#fff", borderRadius:"20px 20px 0 0", padding:"28px 24px 40px", width:"100%", maxWidth:430 }}
+            onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign:"center", marginBottom:20 }}>
+              <div style={{ fontSize:32, marginBottom:8 }}>📲</div>
+              <div style={{ fontFamily:"'DM Serif Display',serif", fontSize:22, color:BRAND.navy, marginBottom:6 }}>Add Cue to Home Screen</div>
+              <div style={{ fontSize:14, color:BRAND.muted, lineHeight:1.6 }}>Install Cue for the best experience and push notifications</div>
+            </div>
+            <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:24 }}>
+              {[
+                { step:"1", text: isIOS ? "Tap the Share button at the bottom of Safari (the box with an arrow)" : "Tap the three-dot menu in Chrome (top right)" },
+                { step:"2", text: isIOS ? 'Scroll down and tap "Add to Home Screen"' : 'Tap "Add to Home Screen"' },
+                { step:"3", text:'Tap "Add" to confirm — Cue will appear on your home screen like a real app' },
+              ].map(({ step, text }) => (
+                <div key={step} style={{ display:"flex", gap:14, alignItems:"flex-start" }}>
+                  <div style={{ background:BRAND.green, color:BRAND.navy, fontWeight:700, fontSize:13, width:26, height:26, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, marginTop:1 }}>{step}</div>
+                  <div style={{ fontSize:14, color:BRAND.navy, lineHeight:1.6 }}>{text}</div>
+                </div>
+              ))}
+            </div>
+            <button onClick={() => setShowInstallModal(false)}
+              style={{ background:BRAND.green, color:BRAND.navy, border:"none", borderRadius:12, padding:"14px 24px", fontSize:15, fontFamily:"'DM Sans',sans-serif", fontWeight:700, cursor:"pointer", width:"100%" }}>
+              Got it!
+            </button>
           </div>
         </div>
       )}
