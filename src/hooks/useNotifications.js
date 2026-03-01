@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 
-// Your VAPID public key — replace this after running the setup guide
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY || ''
 
 function urlBase64ToUint8Array(base64String) {
@@ -11,17 +10,34 @@ function urlBase64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)))
 }
 
+// Safely get notification permission without crashing
+function getPermission() {
+  try {
+    if (typeof Notification === 'undefined') return 'unsupported'
+    return Notification.permission
+  } catch {
+    return 'unsupported'
+  }
+}
+
 export function useNotifications(user) {
-  const [permission, setPermission] = useState(Notification.permission)
+  const [permission, setPermission] = useState(getPermission())
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [supported, setSupported] = useState(false)
 
   useEffect(() => {
-    checkExistingSubscription()
+    // Check if push notifications are supported
+    // Be permissive — try even if PushManager check fails, as some browsers
+    // report it differently when installed as PWA
+    const hasServiceWorker = 'serviceWorker' in navigator
+    const hasNotification  = typeof Notification !== 'undefined'
+    const isSupported = hasServiceWorker && hasNotification
+    setSupported(isSupported)
+    if (isSupported && user) checkExistingSubscription()
   }, [user])
 
   async function checkExistingSubscription() {
-    if (!('serviceWorker' in navigator) || !user) return
     try {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
@@ -30,8 +46,8 @@ export function useNotifications(user) {
   }
 
   async function requestPermissionAndSubscribe() {
-    if (!('Notification' in window)) {
-      alert('Your browser does not support notifications.')
+    if (!supported) {
+      alert('Push notifications are not supported in this browser. Try installing the app to your home screen first.')
       return
     }
     if (!VAPID_PUBLIC_KEY) {
@@ -41,7 +57,6 @@ export function useNotifications(user) {
 
     setLoading(true)
     try {
-      // Ask user for permission
       const result = await Notification.requestPermission()
       setPermission(result)
 
@@ -50,20 +65,15 @@ export function useNotifications(user) {
         return
       }
 
-      // Subscribe to push
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
       })
 
-      // Save subscription to Supabase
       const { error } = await supabase
         .from('push_subscriptions')
-        .upsert({
-          user_id: user.id,
-          subscription: sub.toJSON(),
-        }, { onConflict: 'user_id' })
+        .upsert({ user_id: user.id, subscription: sub.toJSON() }, { onConflict: 'user_id' })
 
       if (!error) setSubscribed(true)
     } catch (err) {
@@ -78,16 +88,11 @@ export function useNotifications(user) {
       const reg = await navigator.serviceWorker.ready
       const sub = await reg.pushManager.getSubscription()
       if (sub) await sub.unsubscribe()
-
-      await supabase
-        .from('push_subscriptions')
-        .delete()
-        .eq('user_id', user.id)
-
+      await supabase.from('push_subscriptions').delete().eq('user_id', user.id)
       setSubscribed(false)
     } catch {}
     setLoading(false)
   }
 
-  return { permission, subscribed, loading, requestPermissionAndSubscribe, unsubscribe }
+  return { permission, subscribed, loading, supported, requestPermissionAndSubscribe, unsubscribe }
 }
