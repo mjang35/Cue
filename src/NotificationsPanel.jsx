@@ -42,9 +42,7 @@ export default function NotificationsPanel({ user, onClose }) {
 
   async function savePrefs() {
     setSavingPrefs(true)
-    await supabase
-      .from('profiles')
-      .upsert({ id: user.id, notification_days: selectedDays })
+    await supabase.from('profiles').upsert({ id: user.id, notification_days: selectedDays })
     setSavingPrefs(false)
     setSavedMsg(true)
     setTimeout(() => setSavedMsg(false), 2000)
@@ -57,111 +55,77 @@ export default function NotificationsPanel({ user, onClose }) {
   }
 
   return (
-    <div style={{ padding: "52px 24px 40px", fontFamily: "'DM Sans', sans-serif" }}>
-      <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: BRAND.muted, fontFamily: "'DM Sans',sans-serif", padding: 0, marginBottom: 20 }}>← Back</button>
+    <div style={{ padding: "44px 20px 40px", fontFamily: "'DM Sans', sans-serif", overflowY: "auto", minHeight: "100vh" }}>
+      <button onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", fontSize: 13, color: BRAND.muted, fontFamily: "'DM Sans',sans-serif", padding: 0, marginBottom: 12 }}>← Back</button>
 
-      <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 28, fontWeight: 400, color: BRAND.navy, marginBottom: 8 }}>Notifications</h2>
-      <p style={{ fontSize: 14, color: BRAND.muted, marginBottom: 32, lineHeight: 1.6 }}>
-        Get reminded on your phone when items are due — even when the app is closed.
+      <h2 style={{ fontFamily: "'DM Serif Display',serif", fontSize: 24, fontWeight: 400, color: BRAND.navy, marginBottom: 4 }}>Notifications</h2>
+      <p style={{ fontSize: 13, color: BRAND.muted, marginBottom: 16, lineHeight: 1.5 }}>
+        Get reminded when items are due.
       </p>
 
-      {/* Not supported */}
-      {!supported && (
-        <div style={{ background: "#FDF7EF", border: "1px solid #F0E0BE", borderRadius: 12, padding: 16, fontSize: 14, color: "#C47A2A", lineHeight: 1.7, marginBottom: 20 }}>
-          <div style={{ fontWeight: 600, marginBottom: 6 }}>📲 Install the app first</div>
-          Push notifications require the app to be installed on your home screen.<br /><br />
-          <strong>On iPhone:</strong> Tap Share in Safari → "Add to Home Screen"<br />
-          <strong>On Android:</strong> Tap menu in Chrome → "Add to Home Screen"<br /><br />
-          Then open Cue from your home screen and come back here.
-        </div>
-      )}
-
-      {/* Status card */}
-      {supported && (
-        <div style={{ background: subscribed ? BRAND.greenLight : "#F5F4F0", borderRadius: 16, padding: 20, marginBottom: 24, border: `1.5px solid ${subscribed ? BRAND.border : "#E8E7E1"}` }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ fontSize: 32 }}>{subscribed ? "🔔" : "🔕"}</div>
-            <div>
-              <div style={{ fontSize: 15, fontWeight: 600, color: BRAND.navy }}>
-                {subscribed ? "Notifications are on" : "Notifications are off"}
-              </div>
-              <div style={{ fontSize: 13, color: BRAND.muted, marginTop: 2 }}>
-                {subscribed ? "Sent daily at 9:00 AM based on your schedule" : "Turn on to get timely reminders"}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Notification schedule picker */}
-      {supported && (
-        <div style={{ marginBottom: 28 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: BRAND.muted, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 12 }}>
-            Notify me
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            {DAY_OPTIONS.map(({ value, label }) => (
-              <div key={value}
-                onClick={() => toggleDay(value)}
-                style={{
-                  display: "flex", alignItems: "center", gap: 12,
-                  padding: "12px 16px", borderRadius: 12, cursor: "pointer",
-                  background: selectedDays.includes(value) ? BRAND.greenLight : "#fff",
-                  border: `1.5px solid ${selectedDays.includes(value) ? BRAND.green : BRAND.border}`,
-                  transition: "all 0.15s",
-                }}>
-                <div style={{
-                  width: 20, height: 20, borderRadius: 4,
-                  background: selectedDays.includes(value) ? BRAND.green : "transparent",
-                  border: `2px solid ${selectedDays.includes(value) ? BRAND.green : BRAND.border}`,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  flexShrink: 0,
-                }}>
-                  {selectedDays.includes(value) && <span style={{ color: BRAND.navy, fontSize: 13, fontWeight: 700 }}>✓</span>}
-                </div>
-                <span style={{ fontSize: 14, fontWeight: 500, color: BRAND.navy }}>{label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div style={{ background:"#F4FBF6", border:`1px solid ${BRAND.border}`, borderRadius:12, padding:"14px 16px", fontSize:13, color:BRAND.muted, lineHeight:1.7, marginBottom:12 }}>
-            <div style={{ fontWeight:600, color:BRAND.navy, marginBottom:8 }}>📬 How notifications work</div>
-            <div style={{ marginBottom:6 }}>🕘 <strong style={{color:BRAND.navy}}>Daily digest</strong> — sent every day at <strong style={{color:BRAND.navy}}>9:00 AM</strong> for items matching your schedule above</div>
-            <div>⏰ <strong style={{color:BRAND.navy}}>Exact time</strong> — if you add a time to a reminder (e.g. 3:30 PM), you'll get a separate notification at that exact moment on the due date</div>
-          </div>
-          <button
-            onClick={savePrefs}
-            disabled={savingPrefs}
-            style={{
-              marginTop: 16, background: savedMsg ? BRAND.green : BRAND.navy,
-              color: "#fff", border: "none", borderRadius: 12,
-              padding: "12px 24px", fontSize: 14, fontFamily: "'DM Sans',sans-serif",
-              fontWeight: 600, cursor: "pointer", width: "100%",
-              opacity: savingPrefs ? 0.5 : 1, transition: "background 0.3s",
-            }}>
-            {savedMsg ? "✓ Saved!" : savingPrefs ? "Saving…" : "Save schedule"}
-          </button>
-        </div>
-      )}
-
-      {/* Toggle notifications */}
+      {/* Toggle button — show first and prominent */}
       {supported && (
         permission === "denied" ? (
-          <div style={{ background: "#FDF0EF", border: "1px solid #F0CECE", borderRadius: 12, padding: 16, fontSize: 14, color: "#C45B5B", lineHeight: 1.6 }}>
-            You've blocked notifications. Go to your browser settings, find this site, and allow notifications.
+          <div style={{ background: "#FDF0EF", border: "1px solid #F0CECE", borderRadius: 12, padding: 14, fontSize: 13, color: "#C45B5B", lineHeight: 1.6, marginBottom: 16 }}>
+            Notifications are blocked. Go to your phone Settings → Notifications → Cue and allow them.
           </div>
         ) : subscribed ? (
-          <button onClick={unsubscribe} disabled={loading}
-            style={{ background: "transparent", border: `1.5px solid ${BRAND.border}`, borderRadius: 12, padding: "13px 24px", fontSize: 15, fontFamily: "'DM Sans',sans-serif", fontWeight: 500, cursor: "pointer", width: "100%", color: BRAND.navy, opacity: loading ? 0.5 : 1 }}>
-            {loading ? "Turning off…" : "Turn off notifications"}
-          </button>
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", background: BRAND.greenLight, border:`1.5px solid ${BRAND.green}`, borderRadius:12, padding:"12px 16px", marginBottom:16 }}>
+            <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+              <span style={{ fontSize:22 }}>🔔</span>
+              <div>
+                <div style={{ fontSize:14, fontWeight:600, color:BRAND.navy }}>Notifications on</div>
+                <div style={{ fontSize:12, color:BRAND.muted }}>Daily at 9:00 AM</div>
+              </div>
+            </div>
+            <button onClick={unsubscribe} disabled={loading}
+              style={{ background:"transparent", border:`1px solid ${BRAND.border}`, borderRadius:8, padding:"6px 12px", fontSize:12, fontFamily:"'DM Sans',sans-serif", fontWeight:500, cursor:"pointer", color:BRAND.navy, opacity:loading?0.5:1 }}>
+              {loading ? "…" : "Turn off"}
+            </button>
+          </div>
         ) : (
           <button onClick={requestPermissionAndSubscribe} disabled={loading}
-            style={{ background: BRAND.green, color: BRAND.navy, border: "none", borderRadius: 12, padding: "14px 24px", fontSize: 15, fontFamily: "'DM Sans',sans-serif", fontWeight: 700, cursor: "pointer", width: "100%", opacity: loading ? 0.5 : 1, boxShadow: `0 4px 20px ${BRAND.green}44` }}>
+            style={{ background:BRAND.green, color:BRAND.navy, border:"none", borderRadius:12, padding:"14px 24px", fontSize:15, fontFamily:"'DM Sans',sans-serif", fontWeight:700, cursor:"pointer", width:"100%", opacity:loading?0.5:1, boxShadow:`0 4px 20px ${BRAND.green}44`, marginBottom:16 }}>
             {loading ? "Setting up…" : "🔔 Turn on notifications"}
           </button>
         )
       )}
+
+      {/* Schedule picker — compact chips instead of tall rows */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 11, fontWeight: 600, color: BRAND.muted, letterSpacing: 0.5, textTransform: "uppercase", marginBottom: 10 }}>Notify me</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
+          {DAY_OPTIONS.map(({ value, label }) => (
+            <div key={value} onClick={() => toggleDay(value)}
+              style={{
+                padding:"8px 14px", borderRadius:20, cursor:"pointer", fontSize:13, fontWeight:500,
+                background: selectedDays.includes(value) ? BRAND.navy : "#fff",
+                color: selectedDays.includes(value) ? "#fff" : BRAND.navy,
+                border: `1.5px solid ${selectedDays.includes(value) ? BRAND.navy : BRAND.border}`,
+                transition:"all 0.15s",
+              }}>
+              {selectedDays.includes(value) ? "✓ " : ""}{label}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <button onClick={savePrefs} disabled={savingPrefs}
+        style={{
+          background: savedMsg ? BRAND.green : BRAND.navy, color:"#fff", border:"none",
+          borderRadius:12, padding:"12px 24px", fontSize:14, fontFamily:"'DM Sans',sans-serif",
+          fontWeight:600, cursor:"pointer", width:"100%", opacity:savingPrefs?0.5:1,
+          marginBottom:16, transition:"background 0.3s",
+        }}>
+        {savedMsg ? "✓ Saved!" : savingPrefs ? "Saving…" : "Save schedule"}
+      </button>
+
+      {/* How it works — compact */}
+      <div style={{ background:"#F4FBF6", border:`1px solid ${BRAND.border}`, borderRadius:10, padding:"12px 14px", fontSize:12, color:BRAND.muted, lineHeight:1.6 }}>
+        <div style={{ fontWeight:600, color:BRAND.navy, marginBottom:6 }}>📬 How it works</div>
+        <div>🕘 <strong style={{color:BRAND.navy}}>Daily digest</strong> at 9:00 AM for items matching your schedule</div>
+        <div style={{marginTop:4}}>⏰ <strong style={{color:BRAND.navy}}>Exact time</strong> — set a time on a reminder to get notified at that moment</div>
+      </div>
     </div>
   )
 }
