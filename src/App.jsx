@@ -170,7 +170,12 @@ export default function App({ user, onSignOut }) {
   }, []);
 
   // Load items from Supabase on mount
-  useEffect(() => { fetchItems(); checkProStatus(); }, []);
+  useEffect(() => { fetchItems(); checkProStatus(); saveTimezone(); }, []);
+
+  async function saveTimezone() {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    await supabase.from("profiles").upsert({ id: user.id, timezone: tz }, { onConflict: "id" });
+  }
 
   async function checkProStatus() {
     const { data } = await supabase
