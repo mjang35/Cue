@@ -36,6 +36,13 @@ const RECURRENCE_OPTIONS = [
   { label: "Every year",     value: 365 },
 ];
 
+function getAllCategories(customCategories = []) {
+  return {
+    ...CATEGORIES,
+    ...Object.fromEntries(customCategories.map(c => [c.key, { label: c.label, icon: c.icon, color: "#7A9A85" }]))
+  };
+}
+
 const urgencyColor = {
   overdue:  "#D45B6A",
   today:    "#E8A838",
@@ -76,7 +83,27 @@ function addDays(dateStr, days) {
 }
 
 // ── Shared form ────────────────────────────────────────────────────────────────
-function FormFields({ form, setForm }) {
+function FormFields({ form, setForm, customCategories = [], onAddCustomCategory }) {
+  const [showNewCat, setShowNewCat] = useState(false);
+  const [newCatName, setNewCatName] = useState("");
+  const [newCatEmoji, setNewCatEmoji] = useState("⭐");
+
+  const allCategories = {
+    ...CATEGORIES,
+    ...Object.fromEntries(customCategories.map(c => [c.key, { label: c.label, icon: c.icon, color: "#7A9A85", custom: true }]))
+  };
+
+  async function saveNewCategory() {
+    if (!newCatName.trim()) return;
+    const key = "custom_" + Date.now();
+    const cat = { key, label: newCatName.trim(), icon: newCatEmoji };
+    await onAddCustomCategory(cat);
+    setForm(f => ({...f, category: key}));
+    setShowNewCat(false);
+    setNewCatName("");
+    setNewCatEmoji("⭐");
+  }
+
   return (
     <div style={{ display:"flex", flexDirection:"column", gap:18 }}>
       <div>
@@ -86,13 +113,54 @@ function FormFields({ form, setForm }) {
       <div>
         <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:8 }}>Category</label>
         <div style={{ display:"flex", flexWrap:"wrap", gap:8 }}>
-          {Object.entries(CATEGORIES).map(([key,cat]) => (
+          {Object.entries(allCategories).map(([key,cat]) => (
             <div key={key} className="cat-chip" onClick={() => setForm(f=>({...f,category:key}))}
               style={{ background:form.category===key?BRAND.navy:"#fff", color:form.category===key?"#fff":BRAND.navy, border:`1.5px solid ${form.category===key?BRAND.navy:BRAND.border}` }}>
               {cat.icon} {cat.label}
             </div>
           ))}
+          {/* Add custom category button */}
+          <div className="cat-chip" onClick={() => setShowNewCat(true)}
+            style={{ background:"#fff", color:BRAND.muted, border:`1.5px dashed ${BRAND.border}`, cursor:"pointer" }}>
+            + New
+          </div>
         </div>
+
+        {/* New category form */}
+        {showNewCat && (
+          <div style={{ marginTop:12, background:BRAND.greenLight, borderRadius:12, padding:14, border:`1px solid ${BRAND.border}` }}>
+            <div style={{ fontSize:12, fontWeight:600, color:BRAND.muted, marginBottom:10, textTransform:"uppercase", letterSpacing:0.5 }}>New category</div>
+            <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+              <input
+                className="input-field"
+                placeholder="Emoji"
+                value={newCatEmoji}
+                onChange={e => setNewCatEmoji(e.target.value)}
+                style={{ width:64, textAlign:"center", fontSize:20, padding:"8px" }}
+                maxLength={2}
+              />
+              <input
+                className="input-field"
+                placeholder="Category name"
+                value={newCatName}
+                onChange={e => setNewCatName(e.target.value)}
+                style={{ flex:1 }}
+                onKeyDown={e => e.key==="Enter" && saveNewCategory()}
+                autoFocus
+              />
+            </div>
+            <div style={{ display:"flex", gap:8 }}>
+              <button type="button" onClick={saveNewCategory}
+                style={{ background:BRAND.green, color:BRAND.navy, border:"none", borderRadius:8, padding:"8px 16px", fontSize:13, fontWeight:700, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", flex:1 }}>
+                Add category
+              </button>
+              <button type="button" onClick={() => { setShowNewCat(false); setNewCatName(""); }}
+                style={{ background:"transparent", color:BRAND.muted, border:`1px solid ${BRAND.border}`, borderRadius:8, padding:"8px 12px", fontSize:13, cursor:"pointer", fontFamily:"'DM Sans',sans-serif" }}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
       <div>
         <label style={{ fontSize:12, fontWeight:600, color:BRAND.muted, letterSpacing:0.5, textTransform:"uppercase", display:"block", marginBottom:8 }}>Expires / Due date</label>
@@ -148,6 +216,7 @@ export default function App({ user, onSignOut }) {
   const [showNotif, setShowNotif]       = useState(false);
   const [showPaywall, setShowPaywall]   = useState(false);
   const [isPro, setIsPro]               = useState(false);
+  const [customCategories, setCustomCategories] = useState([]);
   const FREE_LIMIT = 5;
   const [saving, setSaving]             = useState(false);
   const [installPrompt, setInstallPrompt]         = useState(null);
@@ -170,7 +239,25 @@ export default function App({ user, onSignOut }) {
   }, []);
 
   // Load items from Supabase on mount
-  useEffect(() => { fetchItems(); checkProStatus(); saveTimezone(); }, []);
+  useEffect(() => { fetchItems(); checkProStatus(); saveTimezone(); fetchCustomCategories(); }, []);
+
+  async function fetchCustomCategories() {
+    const { data } = await supabase
+      .from("custom_categories")
+      .select("*")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: true });
+    if (data) setCustomCategories(data);
+  }
+
+  async function addCustomCategory(cat) {
+    const { data } = await supabase
+      .from("custom_categories")
+      .insert({ user_id: user.id, key: cat.key, label: cat.label, icon: cat.icon })
+      .select()
+      .single();
+    if (data) setCustomCategories(prev => [...prev, data]);
+  }
 
   async function saveTimezone() {
     const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -452,7 +539,7 @@ export default function App({ user, onSignOut }) {
           <div style={{ padding:"52px 24px 24px" }}>
             <button onClick={()=>setView("home")} style={{ background:"none", border:"none", cursor:"pointer", fontSize:13, color:BRAND.muted, fontFamily:"'DM Sans',sans-serif", padding:0, marginBottom:20 }}>← Back</button>
             <h2 style={{ fontFamily:"'DM Serif Display',serif", fontSize:28, fontWeight:400, color:BRAND.navy, marginBottom:28 }}>New reminder</h2>
-            <FormFields form={form} setForm={setForm} />
+            <FormFields form={form} setForm={setForm} customCategories={customCategories} onAddCustomCategory={addCustomCategory} />
             <div style={{ marginTop:8 }}>
               <button className="btn-green" onClick={addItem} disabled={saving}>{saving?"Saving…":"Add reminder"}</button>
             </div>
@@ -506,7 +593,7 @@ export default function App({ user, onSignOut }) {
             ):(
               <>
                 <h2 style={{ fontFamily:"'DM Serif Display',serif", fontSize:28, fontWeight:400, color:BRAND.navy, marginBottom:28 }}>Edit reminder</h2>
-                <FormFields form={form} setForm={setForm} />
+                <FormFields form={form} setForm={setForm} customCategories={customCategories} onAddCustomCategory={addCustomCategory} />
                 <div style={{ marginTop:8, display:"flex", flexDirection:"column", gap:10 }}>
                   <button className="btn-green" onClick={updateItem} disabled={saving}>{saving?"Saving…":"Save changes"}</button>
                   <button className="btn-ghost" onClick={()=>setEditMode(false)}>Cancel</button>
