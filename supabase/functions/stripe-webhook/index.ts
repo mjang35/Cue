@@ -1,6 +1,3 @@
-// Supabase Edge Function — stripe-webhook
-// Listens for Stripe events and updates user pro status in the database
-
 import Stripe from 'https://esm.sh/stripe@14.14.0?target=deno'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
@@ -16,21 +13,27 @@ const supabase = createClient(
 Deno.serve(async (req) => {
   const signature = req.headers.get('stripe-signature')
   const body      = await req.text()
+  const webhookSecret = Deno.env.get('STRIPE_WEBHOOK_SECRET')!
 
   let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(
+    event = await stripe.webhooks.constructEventAsync(
       body,
       signature!,
-      Deno.env.get('STRIPE_WEBHOOK_SECRET')!
+      webhookSecret
     )
-  } catch {
-    return new Response('Webhook signature verification failed', { status: 400 })
+  } catch (err) {
+    console.error('Webhook signature error:', err.message)
+    console.error('Secret prefix:', webhookSecret?.substring(0, 10))
+    console.error('Signature header:', signature?.substring(0, 30))
+    return new Response(
+      JSON.stringify({ error: 'Webhook signature verification failed', detail: err.message }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    )
   }
 
   switch (event.type) {
 
-    // Payment succeeded — mark user as Pro
     case 'checkout.session.completed': {
       const session = event.data.object as Stripe.CheckoutSession
       const userId  = session.metadata?.userId
@@ -45,7 +48,6 @@ Deno.serve(async (req) => {
       break
     }
 
-    // Subscription renewed
     case 'invoice.payment_succeeded': {
       const invoice      = event.data.object as Stripe.Invoice
       const customerId   = invoice.customer as string
@@ -63,7 +65,6 @@ Deno.serve(async (req) => {
       break
     }
 
-    // Subscription cancelled or payment failed — remove Pro
     case 'customer.subscription.deleted':
     case 'invoice.payment_failed': {
       const obj        = event.data.object as any

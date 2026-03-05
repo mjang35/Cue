@@ -465,7 +465,11 @@ export default function App({ user, onSignOut }) {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:28 }}>
               <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                 <div style={{ background:BRAND.green, color:BRAND.navy, fontWeight:700, fontSize:17, padding:"6px 16px", borderRadius:10 }}>Cue</div>
-                <span style={{ fontSize:13, color:BRAND.muted, fontWeight:500 }}>timely reminders</span>
+                {isPro ? (
+                  <span style={{ background:BRAND.navy, color:BRAND.green, fontSize:11, fontWeight:700, padding:"3px 8px", borderRadius:6, letterSpacing:0.5 }}>PRO</span>
+                ) : (
+                  <span style={{ fontSize:13, color:BRAND.muted, fontWeight:500 }}>timely reminders</span>
+                )}
               </div>
               <div style={{ display:"flex", gap:8, alignItems:"center" }}>
               <button onClick={() => setShowNotif(true)} style={{ background:"none", border:"none", fontSize:18, cursor:"pointer", padding:"4px" }}>🔔</button>
